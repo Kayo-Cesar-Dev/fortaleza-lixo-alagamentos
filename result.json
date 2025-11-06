@@ -1,0 +1,62 @@
+[
+  {
+    "regiao_adm": "SER 11",
+    "lixo": 94,
+    "alagamento": 24
+  },
+  {
+    "regiao_adm": "SER 8",
+    "lixo": 72,
+    "alagamento": 11
+  },
+  {
+    "regiao_adm": "SER 10",
+    "lixo": 98,
+    "alagamento": 6
+  },
+  {
+    "regiao_adm": "SER 9",
+    "lixo": 30,
+    "alagamento": 16
+  },
+  {
+    "regiao_adm": "SER 6",
+    "lixo": 26,
+    "alagamento": 14
+  },
+  {
+    "regiao_adm": "SER 7",
+    "lixo": 67,
+    "alagamento": 14
+  },
+  {
+    "regiao_adm": "SER 4",
+    "lixo": 85,
+    "alagamento": 12
+  },
+  {
+    "regiao_adm": "SER 5",
+    "lixo": 105,
+    "alagamento": 6
+  },
+  {
+    "regiao_adm": "SER 2",
+    "lixo": 49,
+    "alagamento": 13
+  },
+  {
+    "regiao_adm": "SER 3",
+    "lixo": 29,
+    "alagamento": 18
+  },
+  {
+    "regiao_adm": "SER 1",
+    "lixo": 42,
+    "alagamento": 4
+  },
+  {
+    "regiao_adm": "SER 12",
+    "lixo": 5,
+    "alagamento": 1
+  }
+]

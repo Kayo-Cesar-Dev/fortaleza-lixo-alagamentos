@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Mapa | Lixo x Alagamento</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+      /* --- CORREÇÕES DE LAYOUT (Scroll e Sidebar) --- */
+      html, body { 
+        margin: 0; 
+        padding: 0; 
+        overflow: hidden; /* Garante que o scrollbar horizontal não apareça (Problema 3) */
+      }
+      #map {
+        width: 100%;
+        height: 100vh;
+      }
+      /* Estilos para a Barra Lateral (Sidebar) */
+      #sidebar {
+        color: rgb(0, 0, 0);
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 300px; 
+        height: 100%;
+        background-color: #fffffe;
+        z-index: 1000; 
+        padding: 15px;
+        box-sizing: border-box;
+        box-shadow: -4px 0 8px rgb(0, 0, 0);
+        overflow-y: auto;
+        transform: translateX(100%);
+        transition: transform 0.3s ease-in-out;
+        border-radius: 10px;
+      }
+      #sidebar.open {
+        transform: translateX(0);
+      }
+      #close-sidebar {
+        float: right;
+        font-size: 20px;
+        font-weight: bold;
+        cursor: pointer;
+        border: none;
+        background: none;
+      }
+      #chart-container {
+        width: 100%;
+        height: 250px;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="map"></div>
+    
+    <div id="sidebar">
+        <button id="close-sidebar" title="Fechar">&times;</button>
+        <div id="regional-title">
+            <h2>Dados da Regional</h2>
+            <p>Clique em uma Regional no mapa para ver os dados.</p>
+        </div>
+        <div id="chart-container">
+            <canvas id="chart"></canvas>
+        </div>
+        <p style="font-size: 0.8em; margin-top: 20px;">*Lixo: Contagem de demandas por entulho/volumoso. Alagamento: Ocorrências diretas de Inundação e Alagamento em 2022.</p>
+    </div>
+    
+    <script>
+      const map = L.map('map').setView([-3.73, -38.52], 11);
+      const sidebar = document.getElementById('sidebar');
+      const closeButton = document.getElementById('close-sidebar');
+      const regionalTitle = document.getElementById('regional-title');
+      let currentChart = null;
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+
+      // Função para fechar a barra lateral
+      closeButton.addEventListener('click', () => {
+          sidebar.classList.remove('open');
+      });
+
+      // load dados
+      Promise.all([
+        fetch("../data/processed/result.json").then(r => r.json()),
+        fetch("../data/raw/Secretarias_Executivas_Regionais.geojson").then(r => r.json()),
+        fetch("../data/raw/Rios.geojson").then(r => r.json()),
+        fetch("../data/raw/Canais.geojson").then(r => r.json()),
+        fetch("../data/raw/Valas_e_Drenos.geojson").then(r => r.json()),
+        fetch("../data/raw/Alagados.geojson").then(r => r.json()),
+      ]).then(([dados, regionais, rios, canais, valas, alagados]) => {
+
+        // Função para buscar os dados de contagem de Lixo e Alagamento
+        function valorRegional(nome) {
+          return dados.find(x => x.regiao_adm === nome) || {
+            lixo: 0,
+            alagamento: 0
+          };
+        }
+        
+        // Função para desenhar o gráfico na barra lateral (Problema 4 resolvido)
+        function drawChart(nome, lixo, alagamento) {
+            regionalTitle.innerHTML = `
+                <h2>${nome}</h2>
+                <p>Correlação de Demandas (2022)</p>
+                <p style="font-size:0.9em;">Lixo (Entulho/Poda): <b>${lixo}</b></p>
+                <p> Alagamentos (Dir.): <b>${alagamento}</b></p>
+            `;
+            
+            if (currentChart) {
+                currentChart.destroy();
+            }
+            
+            const ctx = document.getElementById("chart").getContext("2d");
+            currentChart = new Chart(ctx, {
+                type: "bar",
+                data: {
+                    labels: ["Lixo (Apróx.)", "Alagamento (Direto)"],
+                    datasets: [{
+                        label: "Número de Ocorrências",
+                        data: [lixo, alagamento],
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.8)', // Vermelho/Laranja para Lixo (impacto)
+                            'rgba(54, 162, 235, 0.8)'  // Azul para Alagamento
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Contagem de Ocorrências'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Relação por Regional em 2022'
+                        }
+                    }
+                }
+            });
+
+            // Abre a barra lateral
+            sidebar.classList.add('open');
+        }
+
+
+        // Configuração das camadas opcionais de hidrografia
+        const layerRios = L.geoJSON(rios, { style: { color: "#0066cc", weight: 2 } });
+        const layerCanais = L.geoJSON(canais, { style: { color: "#33ccff", weight: 2 } });
+        const layerValas = L.geoJSON(valas, { style: { color: "#00cc66", weight: 2, dashArray: '5, 5' } });
+        const layerAlagados = L.geoJSON(alagados, { style: { color: "#ff3300", weight: 2, fillColor: "#ff3300", fillOpacity: 0.5 } });
+
+        // Agrupa as camadas para o controle de camadas
+        const overlayMaps = {
+            "Rios": layerRios,
+            "Canais": layerCanais,
+            "Valas e Drenos": layerValas,
+            "Áreas Alagadas (Histórico)": layerAlagados
+        };
+
+        // Camada das Regionais com o evento de clique
+        const layerRegionais = L.geoJSON(regionais, {
+          style: {
+            color: "#FFD700",
+            weight: 1,
+            fillOpacity: 0.3
+          },
+          onEachFeature: function(f, layer) {
+
+            // Propriedade correta do GeoJSON de Regionais
+            const nomeSER = f.properties.regiao_adm; 
+            
+            layer.on("click", () => {
+              const r = valorRegional(nomeSER);
+              
+              // Chama a função para desenhar o gráfico na barra lateral
+              drawChart(nomeSER, r.lixo, r.alagamento);
+            });
+            
+            // --- CORREÇÃO 2: Removida a linha layer.bindTooltip para evitar conflitos/borda ---
+          }
+
+        }).addTo(map);
+
+        // Adiciona o controle de camadas
+        L.control.layers(null, overlayMaps, {
+            collapsed: true
+        }).addTo(map);
+        
+        // Ajusta o zoom do mapa para os limites das regionais
+        map.fitBounds(layerRegionais.getBounds());
+      }).catch(error => {
+          console.error("Erro ao carregar dados:", error);
+          regionalTitle.innerHTML = "<h2>Erro de Carregamento</h2><p>Verifique se os arquivos (GeoJSONs e result.json) estão na pasta correta.</p>";
+          sidebar.classList.add('open');
+      });
+    </script>
+  </body>
+</html>
+
+https://github.com/datadoc-opovo/chuvas-em-fortaleza/blob/main/arquivos_gerados/ocorrencias_por_regional.csv  

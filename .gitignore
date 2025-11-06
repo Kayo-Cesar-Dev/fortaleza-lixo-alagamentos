@@ -1,0 +1,31 @@
+# =============================
+# Gitignore para projeto Fortaleza - Lixo e Alagamentos
+# =============================
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Dados e relatórios (Ignora tudo dentro das pastas)
+data/raw/*
+data/processed/*
+reports/figures/*
+reports/relatorios_pdf/*
+
+# Permite .gitkeep para manter pastas vazias
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!reports/figures/.gitkeep
+!reports/relatorios_pdf/.gitkeep
+
+# Logs e outros arquivos temporários
+*.log
+*.tmp
+*.bak
